@@ -1,0 +1,37 @@
+# MyFitTracker .gitignore
+# © 2026 Rahul Nair. All Rights Reserved.
+
+# NEVER commit config.js with real API keys
+# config.js
+# Uncomment the line above only if you want to prevent
+# committing config.js. Leave commented to allow
+# committing the placeholder version.
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Sensitive files - NEVER commit these
+*.pem
+*.key
+*.env
+.env.local
+.env.production
+secrets.js
+private.js
