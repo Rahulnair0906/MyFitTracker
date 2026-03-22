@@ -10,6 +10,13 @@
 <meta name="theme-color" content="#22C97A">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.emailjs.com; connect-src https://*.supabase.co https://api.emailjs.com; img-src 'self' data:;">
 <title>MyFitTracker</title>
+  <script>
+(function(){
+  if(window.location.hash && window.location.hash.includes('access_token')){
+    history.replaceState(null,'',window.location.pathname);
+  }
+})();
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
@@ -308,9 +315,14 @@ html,body{height:100%;overflow:hidden;font-family:'Outfit',sans-serif;background
 </style>
 </head>
 <body>
+  <!-- LOADING SCREEN -->
+<div class="screen" id="loading-screen" style="background:linear-gradient(160deg,#0D1F16 0%,#1a3a28 50%,#0D1F16 100%);align-items:center;justify-content:center;padding:40px 24px;">
+  <div style="font-family:'Playfair Display',serif;font-size:36px;color:#22C97A;text-align:center;">MyFitTracker</div>
+  <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-top:12px;text-align:center;">Loading...</div>
+</div>
 
 <!-- AUTH SCREEN -->
-<div class="screen" id="auth-screen">
+<div class="screen hidden" id="auth-screen">
   <div id="auth-login-view">
     <div class="auth-logo">MyFitTracker</div>
     <div class="auth-sub">Your personal AI-powered health companion.<br>Track meals, workouts, sleep & more.</div>
@@ -931,7 +943,14 @@ let currentUser = null;
 
 async function initSupabase(){
   if(typeof window.supabase !== 'undefined' && MFT_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL'){
-    supabaseClient = window.supabase.createClient(MFT_CONFIG.SUPABASE_URL, MFT_CONFIG.SUPABASE_ANON_KEY);
+    supabaseClient = window.supabase.createClient(MFT_CONFIG.SUPABASE_URL, MFT_CONFIG.SUPABASE_ANON_KEY, {
+     auth: {
+      flowType: 'pkce',
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+  }
+});
     // Listen for auth state changes (handles OAuth redirect)
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if(event === 'SIGNED_IN' && session){
@@ -985,6 +1004,7 @@ async function checkAndProceed(){
       if(!insertError) await sendApprovalEmail();
       document.getElementById('pending-email').textContent = currentUser.email;
       document.getElementById('auth-login-view').classList.add('hidden');
+      localStorage.setItem('mft_pending','true');
       document.getElementById('auth-pending-view').classList.remove('hidden');
     } else if(error){
       // Other DB error — log and show login
@@ -996,6 +1016,7 @@ async function checkAndProceed(){
       // Pending or rejected
       document.getElementById('pending-email').textContent = currentUser.email;
       document.getElementById('auth-login-view').classList.add('hidden');
+      localStorage.setItem('mft_pending','true');
       document.getElementById('auth-pending-view').classList.remove('hidden');
     }
   } catch(e){
@@ -1006,8 +1027,11 @@ async function checkAndProceed(){
 
 async function checkApprovalStatus(){
   if(!supabaseClient){checkOnboarding();return;}
+  const btn = document.querySelector('[onclick="checkApprovalStatus()"]');
+  if(btn){btn.textContent='Checking...';btn.disabled=true;}
+  setTimeout(()=>{if(btn){btn.textContent='Check Status';btn.disabled=false;}},3000);
   const {data} = await supabaseClient.from('users').select('status').eq('id',currentUser.id).single();
-  if(data && data.status === 'approved'){checkOnboarding();}
+  if(data && data.status==='approved'){checkOnboarding();}
   else{toast('Not yet approved. We\'ll email you soon.');}
 }
 
@@ -1015,15 +1039,17 @@ async function sendApprovalEmail(){
   if(MFT_CONFIG.EMAILJS_PUBLIC_KEY === 'YOUR_EMAILJS_PUBLIC_KEY') return;
   emailjs.init(MFT_CONFIG.EMAILJS_PUBLIC_KEY);
   await emailjs.send(MFT_CONFIG.EMAILJS_SERVICE_ID, MFT_CONFIG.EMAILJS_FEEDBACK_TEMPLATE_ID, {
-    to_email: 'yorahulnair@gmail.com',
-    subject: 'New MyFitTracker Access Request',
-    message: `New user request:\nName: ${currentUser.user_metadata?.full_name||'Unknown'}\nEmail: ${currentUser.email}\nTime: ${new Date().toLocaleString()}\n\nPlease approve in your Supabase dashboard.`,
-    from_name: 'MyFitTracker System',
-    reply_to: currentUser.email
+   to_email: 'yorahulnair@gmail.com',
+   name: 'MyFitTracker System',
+   subject: 'New Access Request — ' + (currentUser.user_metadata?.full_name||'Unknown'),
+   message: `New user request:\nName: ${currentUser.user_metadata?.full_name||'Unknown'}\nEmail: ${currentUser.email}\nTime: ${new Date().toLocaleString()}\n\nGo to Supabase → Table Editor → users → change status to approved.`,
+   reply_to: currentUser.email,
+   email: currentUser.email
   });
 }
 
 function checkOnboarding(){
+  localStorage.removeItem('mft_pending');
   const profile = getProfile();
   if(!profile){
     show('disclaimer-screen');
@@ -2055,7 +2081,14 @@ function clearData(){
 
 // --- INIT ---
 document.getElementById('top-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-initSupabase();
+if(localStorage.getItem('mft_pending')==='true'){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('auth-login-view').classList.add('hidden');
+  document.getElementById('auth-pending-view').classList.remove('hidden');
+}  
+document.getElementById('loading-screen').classList.remove('hidden');
+setTimeout(initSupabase, 300);
 </script>
 </body>
 </html>
