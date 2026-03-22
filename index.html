@@ -920,6 +920,16 @@ let currentUser = null;
 async function initSupabase(){
   if(typeof window.supabase !== 'undefined' && MFT_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL'){
     supabaseClient = window.supabase.createClient(MFT_CONFIG.SUPABASE_URL, MFT_CONFIG.SUPABASE_ANON_KEY);
+    // Listen for auth state changes (handles OAuth redirect)
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      if(event === 'SIGNED_IN' && session){
+        currentUser = session.user;
+        await checkAndProceed();
+      } else if(event === 'SIGNED_OUT'){
+        show('auth-screen');
+      }
+    });
+    // Check existing session
     const {data:{session}} = await supabaseClient.auth.getSession();
     if(session){
       currentUser = session.user;
@@ -935,25 +945,50 @@ async function initSupabase(){
 }
 
 async function signInWithGoogle(){
-  if(!supabaseClient){currentUser={email:'demo@user.com',user_metadata:{full_name:'Demo User'}};checkOnboarding();return;}
-  await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
+  if(!supabaseClient){
+    currentUser={email:'demo@user.com',user_metadata:{full_name:'Demo User'}};
+    checkOnboarding();
+    return;
+  }
+  show('auth-screen');
+  const {error} = await supabaseClient.auth.signInWithOAuth({
+    provider:'google',
+    options:{redirectTo: window.location.href}
+  });
+  if(error) toast('Login failed: ' + error.message);
 }
 
 async function checkAndProceed(){
   if(!supabaseClient){checkOnboarding();return;}
-  const {data,error} = await supabaseClient.from('users').select('status').eq('id',currentUser.id).single();
-  if(error || !data){
-    await supabaseClient.from('users').insert({id:currentUser.id,email:currentUser.email,name:currentUser.user_metadata?.full_name||'',status:'pending'});
-    await sendApprovalEmail();
-    document.getElementById('pending-email').textContent = currentUser.email;
-    document.getElementById('auth-login-view').classList.add('hidden');
-    document.getElementById('auth-pending-view').classList.remove('hidden');
-  } else if(data.status === 'approved'){
-    checkOnboarding();
-  } else {
-    document.getElementById('pending-email').textContent = currentUser.email;
-    document.getElementById('auth-login-view').classList.add('hidden');
-    document.getElementById('auth-pending-view').classList.remove('hidden');
+  try {
+    const {data,error} = await supabaseClient.from('users').select('status').eq('id',currentUser.id).single();
+    if(error && error.code === 'PGRST116'){
+      // User not in table yet — new user, insert and show pending
+      const {error:insertError} = await supabaseClient.from('users').insert({
+        id:currentUser.id,
+        email:currentUser.email,
+        name:currentUser.user_metadata?.full_name||'',
+        status:'pending'
+      });
+      if(!insertError) await sendApprovalEmail();
+      document.getElementById('pending-email').textContent = currentUser.email;
+      document.getElementById('auth-login-view').classList.add('hidden');
+      document.getElementById('auth-pending-view').classList.remove('hidden');
+    } else if(error){
+      // Other DB error — log and show login
+      console.error('DB error:', error);
+      show('auth-screen');
+    } else if(data && data.status === 'approved'){
+      checkOnboarding();
+    } else {
+      // Pending or rejected
+      document.getElementById('pending-email').textContent = currentUser.email;
+      document.getElementById('auth-login-view').classList.add('hidden');
+      document.getElementById('auth-pending-view').classList.remove('hidden');
+    }
+  } catch(e){
+    console.error('Auth error:', e);
+    show('auth-screen');
   }
 }
 
