@@ -1,0 +1,37 @@
+// MyFitTracker Service Worker v2.0.0
+// © 2026 Rahul Nair. All Rights Reserved.
+
+const CACHE = 'mft-v2.0.0';
+const ASSETS = ['/', '/index.html', '/config.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ).then(() => self.clients.claim()));
+});
+
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const net = fetch(e.request).then(res => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+        }
+        return res;
+      }).catch(() => cached);
+      return cached || net;
+    })
+  );
+});
+
+self.addEventListener('push', e => {
+  const data = e.data ? e.data.json() : { title: 'MyFitTracker', body: 'Time to check in!' };
+  e.waitUntil(self.registration.showNotification(data.title, {
+    body: data.body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', vibrate: [200, 100, 200]
+  }));
+});
