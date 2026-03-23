@@ -961,6 +961,7 @@ async function initSupabase(){
         currentUser = session.user;
         await checkAndProceed();
       } else if(event === 'SIGNED_OUT'){
+        localStorage.removeItem('mft_pending');
         show('auth-screen');
       }
     });
@@ -2091,8 +2092,9 @@ if(localStorage.getItem('mft_pending')==='true'){
   document.getElementById('auth-screen').classList.remove('hidden');
   document.getElementById('auth-login-view').classList.add('hidden');
   document.getElementById('auth-pending-view').classList.remove('hidden');
+} else {
+  document.getElementById('loading-screen').classList.remove('hidden');
 }
-document.getElementById('loading-screen').classList.remove('hidden');
 function waitForSupabase(){
   if(typeof window.supabase !== 'undefined'){
     initSupabase();
