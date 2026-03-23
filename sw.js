@@ -1,7 +1,7 @@
 // MyFitTracker Service Worker v2.0.0
 // © 2026 Rahul Nair. All Rights Reserved.
 
-const CACHE = 'mft-v2.0.0';
+const CACHE = 'mft-v2.0.1';
 const ASSETS = ['/', '/index.html', '/config.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
