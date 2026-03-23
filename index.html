@@ -2093,7 +2093,14 @@ if(localStorage.getItem('mft_pending')==='true'){
   document.getElementById('auth-pending-view').classList.remove('hidden');
 }
 document.getElementById('loading-screen').classList.remove('hidden');
-setTimeout(initSupabase, 300);
+function waitForSupabase(){
+  if(typeof window.supabase !== 'undefined'){
+    initSupabase();
+  } else {
+    setTimeout(waitForSupabase, 100);
+  }
+}
+setTimeout(waitForSupabase, 100);
 </script>
 </body>
 </html>
