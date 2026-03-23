@@ -1037,7 +1037,7 @@ async function checkApprovalStatus(){
   setTimeout(()=>{if(btn){btn.textContent='Check Status';btn.disabled=false;}},3000);
   const {data} = await supabaseClient.from('users').select('status').eq('id',currentUser.id).single();
   if(data && data.status==='approved'){checkOnboarding();}
-  else{toast('Not yet approved. We'll email you soon.');}
+  else{toast("Not yet approved. We'll email you soon.");}
 }
 
 async function sendApprovalEmail(){
