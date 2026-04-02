@@ -996,6 +996,7 @@ async function signInWithGoogle(){
 
 async function checkAndProceed(){
   if(!supabaseClient){checkOnboarding();return;}
+  await supabaseClient.auth.getSession();
   try {
     const {data,error} = await supabaseClient.from('users').select('status').eq('id',currentUser.id).single();
     if(error && error.code === 'PGRST116'){
