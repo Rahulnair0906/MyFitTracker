@@ -596,7 +596,7 @@ html,body{height:100%;overflow:hidden;font-family:'Outfit',sans-serif;background
       <div class="card">
         <div class="card-title">Your profile</div>
         <div class="settings-section" id="profile-display"></div>
-        <button class="btn-primary" style="margin-top:4px;" onclick="editProfile()">Edit Profile & Recalculate Plan</button>
+        <button class="btn-primary" style="margin-top:4px;" onclick="editProfile(7)">Recalculate Full Plan</button>
       </div>
       <div class="card">
         <div class="card-title">Feedback & contact</div>
@@ -2039,8 +2039,24 @@ function resetGrocery(){
 function renderSettings(){
   const profile = getProfile();
   if(!profile) return;
-  const fields = {Name:profile.name,Age:profile.age,Gender:profile.gender,Height:profile.height+'cm',Weight:profile.weight+'kg','Goal weight':profile.goalWeight+'kg',Goal:profile.goal?.replace(/_/g,' '),Diet:profile.dietType,Country:profile.country,Sports:(profile.sports||[]).join(', ')||'None'};
-  document.getElementById('profile-display').innerHTML = Object.entries(fields).map(([k,v])=>`<div class="settings-row"><div class="settings-key">${escapeHTML(String(k))}</div><div class="settings-val">${escapeHTML(String(v||'—'))}</div></div>`).join('');
+  const allergies = (profile.allergies||[]).join(', ')||'None';
+  const sections = [
+    {step:0, label:'Personal info', value:`${escapeHTML(profile.name||'—')}, ${profile.age||'—'}, ${profile.gender||'—'}, ${profile.height||'—'}cm, ${profile.weight||'—'}kg`},
+    {step:1, label:'Goal', value:`${(profile.goal||'—').replace(/_/g,' ')} → ${profile.goalWeight||'—'}kg in ${profile.timeline||'—'} weeks`},
+    {step:2, label:'Diet & allergies', value:`${profile.dietType||'—'} · Allergies: ${escapeHTML(allergies)}`},
+    {step:3, label:'Activity & sports', value:`${profile.activityLevel||'—'} · ${(profile.sports||[]).join(', ')||'None'}`},
+    {step:4, label:'Country', value:profile.country||'—'},
+    {step:5, label:'Reminders', value:`Breakfast ${profile.tBreakfast||'—'} · Sleep ${profile.tSleep||'—'}`},
+    {step:6, label:'Sleep & rest', value:`${profile.sleepTarget||'—'} hrs · ${profile.restDays||'—'} rest days`},
+  ];
+  document.getElementById('profile-display').innerHTML = sections.map(s=>`
+    <div class="settings-row">
+      <div>
+        <div class="settings-key">${s.label}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${s.value}</div>
+      </div>
+      <div class="settings-edit-btn" onclick="editProfile(${s.step})">Edit</div>
+    </div>`).join('');
   const user = currentUser;
   document.getElementById('fb-name-display').textContent = profile.name || user?.user_metadata?.full_name || '—';
   document.getElementById('fb-email-display').textContent = user?.email || '—';
