@@ -1002,9 +1002,9 @@ async function checkAndProceed(){
       });
       if(!insertError) await sendApprovalEmail();
       document.getElementById('pending-email').textContent = currentUser.email;
-      document.getElementById('auth-login-view').classList.add('hidden');
+      document.getElementById('auth-login-view').style.display='none';
       localStorage.setItem('mft_pending','true');
-      document.getElementById('auth-pending-view').classList.remove('hidden');
+      document.getElementById('auth-pending-view').style.display='block';
     } else if(error){
       // Other DB error — log and show login
       console.error('DB error:', error);
@@ -1014,9 +1014,9 @@ async function checkAndProceed(){
     } else {
       // Pending or rejected
       document.getElementById('pending-email').textContent = currentUser.email;
-      document.getElementById('auth-login-view').classList.add('hidden');
+      document.getElementById('auth-login-view').style.display='none';
       localStorage.setItem('mft_pending','true');
-      document.getElementById('auth-pending-view').classList.remove('hidden');
+      document.getElementById('auth-pending-view').style.display='block';
     }
   } catch(e){
     console.error('Auth error:', e);
