@@ -2258,9 +2258,9 @@ function renderSettings(){
   document.getElementById('fb-email-display').textContent = user?.email || '—';
 }
 
-function editProfile(){
+function editProfile(step=0){
   obData = {...getProfile()};
-  obStep = 0;
+  obStep = step;
   show('onboarding-screen');
   renderObStep();
 }
