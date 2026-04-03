@@ -949,7 +949,7 @@ async function initSupabase(){
       if(event === 'SIGNED_IN' && session && !authHandled){
         authHandled = true;
         currentUser = session.user;
-        await checkAndProceed();
+        setTimeout(() => checkAndProceed(), 0);
       } else if(event === 'SIGNED_OUT'){
         authHandled = false;
         currentUser = null;
@@ -962,7 +962,7 @@ async function initSupabase(){
     if(session && !authHandled){
       authHandled = true;
       currentUser = session.user;
-      await checkAndProceed();
+      setTimeout(() => checkAndProceed(), 0);
     } else if(!session){
       show('auth-screen');
     }
@@ -990,29 +990,23 @@ async function checkAndProceed(){
   if(!supabaseClient){checkOnboarding();return;}
   if(!currentUser){show('auth-screen');return;}
   try {
-    const session = await supabaseClient.auth.getSession();
-    const token = session.data.session?.access_token || MFT_CONFIG.SUPABASE_ANON_KEY;
-    const headers = {
-      'apikey': MFT_CONFIG.SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-
-    const res = await fetch(`${MFT_CONFIG.SUPABASE_URL}/rest/v1/users?select=status&id=eq.${currentUser.id}`, {headers});
-    const rows = await res.json();
-
-    if(!Array.isArray(rows) || rows.length === 0){
-      const insertRes = await fetch(`${MFT_CONFIG.SUPABASE_URL}/rest/v1/users`, {
-        method: 'POST',
-        headers: {...headers, 'Prefer': 'return=minimal'},
-        body: JSON.stringify({id:currentUser.id, email:currentUser.email, name:currentUser.user_metadata?.full_name||'', status:'pending'})
+    const {data,error} = await supabaseClient.from('users').select('status').eq('id',currentUser.id).single();
+    if(error && error.code === 'PGRST116'){
+      const {error:insertError} = await supabaseClient.from('users').insert({
+        id:currentUser.id,
+        email:currentUser.email,
+        name:currentUser.user_metadata?.full_name||'',
+        status:'pending'
       });
-      if(insertRes.ok) await sendApprovalEmail();
+      if(!insertError) await sendApprovalEmail();
       document.getElementById('pending-email').textContent = currentUser.email;
       document.getElementById('auth-login-view').style.display='none';
       localStorage.setItem('mft_pending','true');
       document.getElementById('auth-pending-view').style.display='block';
-    } else if(rows[0].status === 'approved'){
+    } else if(error){
+      console.error('DB error:', error);
+      show('auth-screen');
+    } else if(data && data.status === 'approved'){
       checkOnboarding();
     } else {
       document.getElementById('pending-email').textContent = currentUser.email;
