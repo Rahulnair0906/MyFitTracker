@@ -908,6 +908,180 @@ const EXERCISE_PLANS = {
   running:[{icon:'🏃',name:'Run plan',detail:'3x per week: 1 easy run, 1 tempo run, 1 long run. Build weekly.'},{icon:'👟',name:'Proper form',detail:'Land midfoot, keep cadence above 160 steps/min, relax shoulders.'},{icon:'🍌',name:'Pre-run fuel',detail:'Banana or toast 45 min before. Nothing heavy.'},{icon:'🧘',name:'Post-run stretch',detail:'Calves, hip flexors, IT band. Prevents injury.'}]
 };
 
+// --- SUBSTITUTION ENGINE ---
+const CRAMP_TAGS = ['Potassium — cramp fix','Magnesium — cramp fix'];
+
+const NUTRIENT_SUBS = {
+  dairy: {
+    nutrients: 'calcium + protein',
+    keywords: ['curd','yoghurt','greek yoghurt','paneer','milk','ghee','butter','cream','dahi','hung curd'],
+    replacements: {
+      nonveg:  [{item:'tofu', reason:'protein + calcium'}, {item:'chicken breast (extra 50g)', reason:'protein boost'}],
+      veg:     [{item:'tofu', reason:'protein + calcium'}, {item:'spinach', reason:'calcium'}],
+      vegan:   [{item:'tofu', reason:'protein + calcium'}, {item:'fortified oat milk', reason:'calcium'}],
+      conflict_soy_nonveg: [{item:'chicken breast', reason:'protein'}, {item:'spinach', reason:'calcium'}],
+      conflict_soy_veg:    [{item:'chickpeas', reason:'protein'}, {item:'spinach', reason:'calcium'}],
+      conflict_soy_vegan:  [{item:'chickpeas', reason:'protein'}, {item:'spinach', reason:'calcium'}],
+    }
+  },
+  eggs: {
+    nutrients: 'protein + vitamin D + choline',
+    keywords: ['egg','eggs','boiled egg','scrambled egg','omelette','egg white'],
+    replacements: {
+      nonveg:  [{item:'chicken breast (100g)', reason:'protein + choline'}, {item:'mushrooms', reason:'vitamin D'}],
+      veg:     [{item:'scrambled tofu', reason:'protein'}, {item:'mushrooms', reason:'vitamin D'}, {item:'chickpeas', reason:'choline'}],
+      vegan:   [{item:'scrambled tofu', reason:'protein'}, {item:'mushrooms', reason:'vitamin D'}, {item:'chickpeas', reason:'choline'}],
+      conflict_soy_nonveg: [{item:'chicken breast (100g)', reason:'protein + choline'}, {item:'mushrooms', reason:'vitamin D'}],
+      conflict_soy_veg:    [{item:'chickpeas', reason:'protein'}, {item:'mushrooms', reason:'vitamin D'}],
+      conflict_soy_vegan:  [{item:'chickpeas', reason:'protein'}, {item:'mushrooms', reason:'vitamin D'}],
+    }
+  },
+  nuts: {
+    nutrients: 'healthy fats + magnesium + vitamin E',
+    keywords: ['almonds','cashews','peanuts','walnuts','pistachios','peanut butter','almond butter','nut'],
+    replacements: {
+      nonveg: [{item:'sunflower seeds', reason:'vitamin E + healthy fats'}, {item:'pumpkin seeds', reason:'magnesium + zinc'}],
+      veg:    [{item:'sunflower seeds', reason:'vitamin E + healthy fats'}, {item:'pumpkin seeds', reason:'magnesium + zinc'}],
+      vegan:  [{item:'sunflower seeds', reason:'vitamin E + healthy fats'}, {item:'pumpkin seeds', reason:'magnesium + zinc'}],
+    }
+  },
+  seafood: {
+    nutrients: 'protein + omega-3',
+    keywords: ['tuna','fish','prawn','prawns','crab','shrimp','salmon','sardines'],
+    replacements: {
+      nonveg: [{item:'chicken breast', reason:'protein'}, {item:'flaxseeds (1 tsp)', reason:'omega-3'}],
+      veg:    [{item:'flaxseeds (1 tsp)', reason:'omega-3'}, {item:'tofu', reason:'protein'}],
+      vegan:  [{item:'flaxseeds (1 tsp)', reason:'omega-3'}, {item:'tofu', reason:'protein'}],
+      conflict_soy_nonveg: [{item:'chicken breast', reason:'protein'}, {item:'flaxseeds', reason:'omega-3'}],
+      conflict_soy_veg:    [{item:'chickpeas', reason:'protein'}, {item:'flaxseeds', reason:'omega-3'}],
+      conflict_soy_vegan:  [{item:'chickpeas', reason:'protein'}, {item:'flaxseeds', reason:'omega-3'}],
+    }
+  },
+  gluten: {
+    nutrients: 'carbs + fibre',
+    keywords: ['roti','chapati','bread','atta','oats','pasta','noodles','naan','paratha','puri','wheat'],
+    replacements: {
+      nonveg: [{item:'rice', reason:'carbs + energy'}, {item:'quinoa', reason:'carbs + complete protein'}],
+      veg:    [{item:'rice', reason:'carbs + energy'}, {item:'quinoa', reason:'carbs + complete protein'}],
+      vegan:  [{item:'rice', reason:'carbs + energy'}, {item:'quinoa', reason:'carbs + complete protein'}],
+      conflict_rice_nonveg: [{item:'quinoa', reason:'carbs + complete protein'}, {item:'sweet potato', reason:'carbs + potassium'}],
+      conflict_rice_veg:    [{item:'quinoa', reason:'carbs + complete protein'}, {item:'sweet potato', reason:'carbs + potassium'}],
+      conflict_rice_vegan:  [{item:'quinoa', reason:'carbs + complete protein'}, {item:'sweet potato', reason:'carbs + potassium'}],
+    }
+  },
+  soy: {
+    nutrients: 'plant-based protein',
+    keywords: ['tofu','soy milk','soy sauce','soy'],
+    replacements: {
+      nonveg: [{item:'chicken breast', reason:'protein'}, {item:'chickpeas', reason:'plant protein'}],
+      veg:    [{item:'paneer', reason:'protein + calcium'}, {item:'chickpeas', reason:'plant protein'}],
+      vegan:  [{item:'chickpeas', reason:'protein'}, {item:'lentils', reason:'protein + iron'}],
+      conflict_dairy_veg:   [{item:'chickpeas', reason:'protein'}, {item:'lentils', reason:'protein + iron'}],
+      conflict_dairy_vegan: [{item:'chickpeas', reason:'protein'}, {item:'lentils', reason:'protein + iron'}],
+    }
+  },
+  seeds: {
+    nutrients: 'healthy fats + minerals',
+    keywords: ['sesame','sunflower seeds','pumpkin seeds','flaxseeds','chia seeds'],
+    replacements: {
+      nonveg: [{item:'almonds', reason:'healthy fats + minerals'}],
+      veg:    [{item:'almonds', reason:'healthy fats + minerals'}],
+      vegan:  [{item:'almonds', reason:'healthy fats + minerals'}],
+      conflict_nuts_nonveg: [{item:'olive oil (1 tsp)', reason:'healthy fats'}],
+      conflict_nuts_veg:    [{item:'olive oil (1 tsp)', reason:'healthy fats'}],
+      conflict_nuts_vegan:  [{item:'olive oil (1 tsp)', reason:'healthy fats'}],
+    }
+  },
+  honey: {
+    nutrients: 'natural sugars + energy',
+    keywords: ['honey'],
+    replacements: {
+      nonveg: [{item:'dates (2)', reason:'natural sugars + potassium'}, {item:'jaggery (small amount)', reason:'iron + energy'}],
+      veg:    [{item:'dates (2)', reason:'natural sugars + potassium'}, {item:'jaggery (small amount)', reason:'iron + energy'}],
+      vegan:  [{item:'dates (2)', reason:'natural sugars + potassium'}, {item:'jaggery (small amount)', reason:'iron + energy'}],
+    }
+  },
+  banana: {
+    nutrients: 'potassium + carbs + natural sugars + magnesium',
+    keywords: ['banana','bananas'],
+    replacements: {
+      nonveg: [{item:'apple', reason:'carbs + fibre'}, {item:'dates (2)', reason:'potassium + natural sugars'}, {item:'spinach (side)', reason:'magnesium'}],
+      veg:    [{item:'apple', reason:'carbs + fibre'}, {item:'dates (2)', reason:'potassium + natural sugars'}, {item:'spinach (side)', reason:'magnesium'}],
+      vegan:  [{item:'apple', reason:'carbs + fibre'}, {item:'dates (2)', reason:'potassium + natural sugars'}, {item:'spinach (side)', reason:'magnesium'}],
+    }
+  },
+  rice: {
+    nutrients: 'carbs + energy',
+    keywords: ['rice','basmati rice','white rice','brown rice','fried rice','jeera rice'],
+    replacements: {
+      nonveg: [{item:'quinoa', reason:'carbs + complete protein'}, {item:'sweet potato', reason:'carbs + potassium'}],
+      veg:    [{item:'quinoa', reason:'carbs + complete protein'}, {item:'sweet potato', reason:'carbs + potassium'}],
+      vegan:  [{item:'quinoa', reason:'carbs + complete protein'}, {item:'sweet potato', reason:'carbs + potassium'}],
+    }
+  },
+};
+
+function getReplacements(allergen, profile, otherAllergies) {
+  const sub = NUTRIENT_SUBS[allergen];
+  if(!sub) return null;
+  const diet = profile.dietType === 'nonveg' ? 'nonveg' : profile.dietType === 'vegan' ? 'vegan' : 'veg';
+  const allAllergies = new Set([...(profile.allergies||[]), ...otherAllergies]);
+  if(allergen !== 'soy' && allAllergies.has('soy') && sub.replacements[`conflict_soy_${diet}`])
+    return {nutrients: sub.nutrients, items: sub.replacements[`conflict_soy_${diet}`]};
+  if(allergen !== 'dairy' && allAllergies.has('dairy') && sub.replacements[`conflict_dairy_${diet}`])
+    return {nutrients: sub.nutrients, items: sub.replacements[`conflict_dairy_${diet}`]};
+  if(allergen !== 'rice' && allAllergies.has('rice') && sub.replacements[`conflict_rice_${diet}`])
+    return {nutrients: sub.nutrients, items: sub.replacements[`conflict_rice_${diet}`]};
+  if(allergen !== 'nuts' && allAllergies.has('nuts') && sub.replacements[`conflict_nuts_${diet}`])
+    return {nutrients: sub.nutrients, items: sub.replacements[`conflict_nuts_${diet}`]};
+  return {nutrients: sub.nutrients, items: sub.replacements[diet] || sub.replacements.nonveg};
+}
+
+function applySubstitutions(meal, profile) {
+  if(!meal || !profile) return {meal, swaps:[]};
+  const allergies = profile.allergies || [];
+  const otherRaw = (profile.otherAllergies || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
+  const allAllergenKeys = [...new Set([...allergies, ...otherRaw.filter(w=>NUTRIENT_SUBS[w])])];
+  const allRawWords = otherRaw.filter(w=>!NUTRIENT_SUBS[w]);
+
+  let name = meal.name;
+  let desc = meal.desc;
+  let tags = [...(meal.tags||[])];
+  const swaps = [];
+
+  const allData = (function(){try{return JSON.parse(localStorage.getItem('mft2_data')||'{}');}catch(e){return {};}})();
+  const hasCramps = Object.values(allData).some(d=>d.symptoms&&d.symptoms.includes(0));
+  if(!hasCramps) tags = tags.filter(t => !CRAMP_TAGS.includes(t));
+
+  allAllergenKeys.forEach(allergen => {
+    const sub = NUTRIENT_SUBS[allergen];
+    if(!sub) return;
+    const nameLower = name.toLowerCase();
+    const descLower = desc.toLowerCase();
+    const hasInName = sub.keywords.some(k=>nameLower.includes(k));
+    const hasInDesc = sub.keywords.some(k=>descLower.includes(k));
+    if(!hasInName && !hasInDesc) return;
+    const rep = getReplacements(allergen, profile, otherRaw);
+    if(!rep) return;
+    const keyword = sub.keywords.find(k=>nameLower.includes(k)||descLower.includes(k));
+    if(hasInName && keyword) name = name.replace(new RegExp(keyword, 'gi'), rep.items[0].item);
+    if(hasInDesc && keyword) desc = desc.replace(new RegExp(keyword+'[^,.]*', 'gi'), rep.items.map(i=>`${i.item} (${i.reason})`).join(' + '));
+    swaps.push({from: keyword||allergen, to: rep.items.map(i=>i.item).join(' + '), nutrients: rep.nutrients, items: rep.items});
+  });
+
+  allRawWords.forEach(word => {
+    if(word.length < 3) return;
+    const nameLower = name.toLowerCase();
+    const descLower = desc.toLowerCase();
+    if(!nameLower.includes(word) && !descLower.includes(word)) return;
+    if(nameLower.includes(word)) name = name.replace(new RegExp(word, 'gi'), 'alternative');
+    if(descLower.includes(word)) desc = desc.replace(new RegExp(word+'[^,.]*', 'gi'), 'suitable alternative (allergy noted)');
+    swaps.push({from: word, to: 'suitable alternative', nutrients: 'varies', items:[{item:'suitable alternative', reason:'allergy noted'}]});
+  });
+
+  return {meal:{...meal, name, desc, tags}, swaps};
+}
+  
 // --- STATE MANAGEMENT ---
 const START_DATE = new Date('2026-03-22');
 
@@ -1445,18 +1619,31 @@ function renderToday(){
     });
   });
 
-  const html = mealDefs.map((name,i)=>{
+  const html = mealDefs.map((mealName,i)=>{
     const logged = day.meals[i];
-    const suggested = todayPlan[i];
+    const rawSuggested = todayPlan[i];
     const repeatKeys = Object.entries(mealHistory).filter(([k2,v])=>k2.startsWith(i+'_')&&v>=3).slice(0,2);
+    let suggested = rawSuggested;
+    let swaps = [];
+    if(rawSuggested){
+      const result = applySubstitutions(rawSuggested, profile);
+      suggested = result.meal;
+      swaps = result.swaps;
+    }
+    const swapHtml = swaps.map(s=>`
+      <div style="background:#FEF9EC;border:0.5px solid #F59E0B;border-radius:7px;padding:7px 10px;font-size:11px;color:#92400E;margin:4px 0;line-height:1.5;">
+        Substituted <strong>${s.from}</strong> → <strong>${s.to}</strong><br>
+        Covers: ${s.nutrients} &nbsp;·&nbsp; ${s.items.map(it=>`${it.item}: ${it.reason}`).join(' · ')}
+      </div>`).join('');
     return `<div class="meal-item">
       <div class="meal-check ${logged?'on':''}" id="mc-${i}" onclick="toggleMealOpen(${i})"></div>
       <div class="meal-body">
         <div class="meal-header">
-          <div class="meal-name">${name}</div>
+          <div class="meal-name">${mealName}</div>
           ${suggested?`<div class="meal-tag">~${suggested.protein}g protein</div>`:''}
         </div>
         ${suggested?`<div style="font-size:11px;color:var(--muted);">${suggested.name}</div>`:''}
+        ${swapHtml}
         ${logged?`<div class="meal-macros"><span class="mmac">${logged.p}g protein</span><span class="mmac">${logged.cal} kcal</span><span class="mmac">${logged.c}g carbs</span><span class="mmac">${logged.f}g fat</span></div><div style="font-size:11px;color:var(--muted);margin-top:3px;">${escapeHTML(logged.text||'')}</div>`:''}
         <div class="meal-log-area" id="mla-${i}">
           <input class="meal-log-input" id="mli-${i}" placeholder="e.g. 3 eggs and banana, 1 cup milk" ${logged?`value="${logged.text||''}"`:''}">
@@ -1937,13 +2124,22 @@ function selectWeek(w, btn){
   const goalPlans = MEAL_PLANS[profile.goal]||MEAL_PLANS['fat_loss'];
   const dietKey = profile.dietType==='nonveg'?'nonveg':'veg';
   const meals = (goalPlans[dietKey]||goalPlans['nonveg'])[w]||[];
-  document.getElementById('meal-plan-content').innerHTML = meals.map(m=>`
+  document.getElementById('meal-plan-content').innerHTML = meals.map(m=>{
+    const {meal, swaps} = applySubstitutions(m, profile);
+    const swapHtml = swaps.map(s=>`
+      <div style="background:#FEF9EC;border:0.5px solid #F59E0B;border-radius:7px;padding:6px 10px;font-size:11px;color:#92400E;margin:4px 0;line-height:1.5;">
+        Substituted <strong>${s.from}</strong> → <strong>${s.to}</strong><br>
+        Covers: ${s.nutrients}
+      </div>`).join('');
+    return `
     <div class="card plan-meal" style="margin-bottom:10px;">
-      <div class="plan-time">${m.time}</div>
-      <div class="plan-name">${m.name}</div>
-      <div class="plan-desc">${m.desc}</div>
-      <div class="ptags">${(m.tags||[]).map(t=>`<span class="ptag ${t.includes('protein')?'ptag-g':t.includes('kcal')?'ptag-n':'ptag-b'}">${t}</span>`).join('')}</div>
-    </div>`).join('');
+      <div class="plan-time">${meal.time}</div>
+      <div class="plan-name">${meal.name}</div>
+      <div class="plan-desc">${meal.desc}</div>
+      ${swapHtml}
+      <div class="ptags">${(meal.tags||[]).map(t=>`<span class="ptag ${t.includes('protein')?'ptag-g':t.includes('kcal')?'ptag-n':'ptag-b'}">${t}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
 }
 
 // --- GROCERY PAGE ---
