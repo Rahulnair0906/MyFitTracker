@@ -982,7 +982,7 @@ async function signInWithGoogle(){
   show('auth-screen');
   const {error} = await supabaseClient.auth.signInWithOAuth({
     provider:'google',
-    options:{redirectTo: window.location.href}
+    options:{redirectTo: 'https://rahulnair0906.github.io/MyFitTracker/'}
   });
   if(error) toast('Login failed: ' + error.message);
 }
